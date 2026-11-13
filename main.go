@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/grafana/sobek"
 )
@@ -10,7 +11,15 @@ func createConsole(vm *sobek.Runtime) {
 	c := vm.NewObject()
 
 	c.Set("log", func(call sobek.FunctionCall) sobek.Value {
-		fmt.Println(call.Arguments)
+		var b strings.Builder
+		for i, arg := range call.Arguments {
+			b.WriteString(arg.String())
+			if i < len(call.Arguments)-1 {
+				b.WriteString(", ")
+			}
+		}
+
+		fmt.Println(b.String())
 
 		return vm.ToValue("meow!")
 	})
