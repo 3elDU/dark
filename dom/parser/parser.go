@@ -48,14 +48,11 @@ func convertTree(tree *dom.Dom, node *html.Node) dom.NodeHandle {
 	return parent.Id()
 }
 
-func convertAttrs(attrs []html.Attribute) []dom.Attr {
-	out := make([]dom.Attr, len(attrs))
+func convertAttrs(attrs []html.Attribute) dom.AttributeList {
+	out := dom.AttributeList{}
 
-	for i, attr := range attrs {
-		out[i] = dom.Attr{
-			Key:   attr.Key,
-			Value: attr.Val,
-		}
+	for _, attr := range attrs {
+		out[attr.Key] = attr.Val
 	}
 
 	return out

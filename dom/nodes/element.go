@@ -8,11 +8,15 @@ import (
 
 type ElementData struct {
 	tagName string
-	attrs   []dom.Attr
+	attrs   dom.AttributeList
 }
 
-func NewElementData(tagName string, attrs []dom.Attr) ElementData {
+func NewElementData(tagName string, attrs dom.AttributeList) ElementData {
 	return ElementData{tagName, attrs}
+}
+
+func (e ElementData) TagName() string {
+	return e.tagName
 }
 
 func (e ElementData) String() string {
@@ -25,16 +29,18 @@ func (e ElementData) String() string {
 		sb.WriteRune(' ')
 	}
 
-	for i, attr := range e.attrs {
-		sb.WriteString(attr.Key)
+	i := 0
+	for k, attr := range e.attrs {
+		sb.WriteString(k)
 		sb.WriteRune('=')
 		sb.WriteRune('"')
-		sb.WriteString(attr.Value)
+		sb.WriteString(attr)
 		sb.WriteRune('"')
 
 		if i < len(e.attrs)-1 {
 			sb.WriteRune(' ')
 		}
+		i++
 	}
 
 	sb.WriteRune('>')
@@ -47,6 +53,6 @@ func (ElementData) Type() dom.NodeType {
 func (ElementData) Text() string {
 	return ""
 }
-func (e ElementData) Attributes() []dom.Attr {
+func (e ElementData) Attributes() dom.AttributeList {
 	return e.attrs
 }

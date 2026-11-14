@@ -11,7 +11,7 @@ func (d *Dom) Print() {
 }
 
 func walkAndPrint(dom *Dom, depth int, node *Node) {
-	str := node.data.String()
+	str := node.Data.String()
 
 	// skip empty tags
 	if str != "" {

@@ -7,11 +7,15 @@ import (
 )
 
 type TextData struct {
+	baseNode
 	text string
 }
 
 func NewTextData(text string) TextData {
-	return TextData{text}
+	return TextData{
+		baseNode{},
+		text,
+	}
 }
 
 func (t TextData) String() string {
@@ -22,7 +26,4 @@ func (TextData) Type() dom.NodeType {
 }
 func (t TextData) Text() string {
 	return t.text
-}
-func (t TextData) Attributes() []dom.Attr {
-	return nil
 }

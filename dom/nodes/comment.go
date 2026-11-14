@@ -3,22 +3,23 @@ package nodes
 import "github.com/3elDU/dark/dom"
 
 type CommentData struct {
+	baseNode
 	comment string
 }
 
 func NewCommentData(comment string) CommentData {
-	return CommentData{comment}
+	return CommentData{
+		baseNode{},
+		comment,
+	}
 }
 
-func (d CommentData) String() string {
-	return "<!-- " + d.comment + "-->"
+func (c CommentData) String() string {
+	return "<!-- " + c.comment + "-->"
 }
 func (CommentData) Type() dom.NodeType {
 	return dom.CommentNode
 }
-func (CommentData) Text() string {
-	return ""
-}
-func (CommentData) Attributes() []dom.Attr {
-	return nil
+func (c CommentData) Text() string {
+	return c.comment
 }

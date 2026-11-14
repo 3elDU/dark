@@ -1,7 +1,10 @@
 // Package dom implements parsing and structures to represent the final DOM tree
 package dom
 
-import "iter"
+import (
+	"iter"
+	"strings"
+)
 
 // A handle to the node. Useful only with the [Dom] structure.
 // By itself is an index into it.
@@ -97,12 +100,43 @@ func (dom *Dom) GetRootNode() *Node {
 	return dom.nodes[dom.root]
 }
 
+func (dom *Dom) QueryAllByTagName(tagName string) []*Node {
+	matching := []*Node{}
+
+	for _, node := range dom.nodes {
+		if node.Data.TagName() == tagName {
+			matching = append(matching, node)
+		}
+	}
+
+	return matching
+}
+
+func (dom *Dom) GetTextContent(node *Node) string {
+	switch node.Data.Type() {
+	case TextNode:
+		return node.Data.Text()
+	case CommentNode:
+		return node.Data.Text()
+	case ElementNode:
+		var sb strings.Builder
+
+		for child := range dom.ChildNodes(node) {
+			sb.WriteString(dom.GetTextContent(child))
+		}
+
+		return sb.String()
+	default:
+		return ""
+	}
+}
+
 type Node struct {
 	// ID of this node in the parent tree
 	id       NodeHandle
 	parent   NodeHandle
 	children []NodeHandle
-	data     NodeData
+	Data     NodeData
 }
 
 func NewNode(data NodeData) *Node {
@@ -110,7 +144,7 @@ func NewNode(data NodeData) *Node {
 		id:       InvalidHandle,
 		parent:   InvalidHandle,
 		children: []NodeHandle{},
-		data:     data,
+		Data:     data,
 	}
 }
 
@@ -130,13 +164,12 @@ func (n Node) childIndex(child NodeHandle) int {
 }
 
 type NodeData interface {
+	TagName() string
 	// String representation of the node for debugging
 	String() string
 	Type() NodeType
 	Text() string
-	Attributes() []Attr
+	Attributes() AttributeList
 }
 
-type Attr struct {
-	Key, Value string
-}
+type AttributeList map[string]string

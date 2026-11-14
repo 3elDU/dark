@@ -34,5 +34,5 @@ func (t *Tab) NavigateTo(url string) {
 		panic(err)
 	}
 
-	t.ActiveDocument = NewHtmlDocument(page)
+	t.ActiveDocument = NewHtmlDocument(url, page)
 }

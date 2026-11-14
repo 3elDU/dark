@@ -2,7 +2,9 @@ package nodes
 
 import "github.com/3elDU/dark/dom"
 
-type DoctypeData struct{}
+type DoctypeData struct {
+	baseNode
+}
 
 func NewDoctypeData() DoctypeData {
 	return DoctypeData{}
@@ -13,10 +15,4 @@ func (d DoctypeData) String() string {
 }
 func (DoctypeData) Type() dom.NodeType {
 	return dom.DoctypeNode
-}
-func (DoctypeData) Text() string {
-	return ""
-}
-func (DoctypeData) Attributes() []dom.Attr {
-	return nil
 }
