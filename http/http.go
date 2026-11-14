@@ -14,7 +14,8 @@ var userAgents = map[string]string{
 	"dark":    "Dark",
 }
 
-func FetchWebpage(url string, uaKey string) (page string, err error) {
+// Used for all requests originating from the browser.
+func FetchWebResource(url string, uaKey string) (data string, err error) {
 	if _, ok := userAgents[uaKey]; !ok {
 		return "", fmt.Errorf("invalid user agent key: %v", uaKey)
 	}

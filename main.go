@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/3elDU/dark/dom/parser"
-	"github.com/3elDU/dark/http"
+	"github.com/3elDU/dark/browser"
 	"github.com/grafana/sobek"
 )
 
@@ -40,19 +39,8 @@ func main() {
 		panic("expected a url as the last argument")
 	}
 
-	page, err := http.FetchWebpage(url, *ua)
-	if err != nil {
-		panic(err)
-	}
+	tab := browser.NewBrowsingContext(*ua)
+	tab.NavigateTo(url)
 
-	dom, err := parser.ParseDocument(page)
-	if err != nil {
-		panic(err)
-	}
-
-	dom.Print()
-
-	// no event loop yet
-	vm := sobek.New()
-	createConsole(vm)
+	tab.ActiveDocument.Dom.Print()
 }
