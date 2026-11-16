@@ -28,10 +28,10 @@ func closest(timers []timer) (timer, time.Time) {
 	var closest time.Time
 	var timer timer
 
-	for _, t := range timers {
+	for i, t := range timers {
 		deadline := t.next()
 
-		if deadline.Before(closest) {
+		if i == 0 || deadline.Before(closest) {
 			closest = deadline
 			timer = t
 		}
@@ -75,7 +75,8 @@ func processTimers(ch chan TimerId, push chan timer, del chan TimerId, stop chan
 }
 
 type TimersWorkerHandle struct {
-	ch   chan TimerId
+	// Returns the Timer ID that fired.
+	C    chan TimerId
 	push chan timer
 	del  chan TimerId
 	stop chan any
@@ -94,7 +95,7 @@ func NewTimersWorker() *TimersWorkerHandle {
 	go processTimers(ch, push, del, stop)
 
 	return &TimersWorkerHandle{
-		ch:      ch,
+		C:       ch,
 		push:    push,
 		del:     del,
 		stop:    stop,
