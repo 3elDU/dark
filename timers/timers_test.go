@@ -94,3 +94,25 @@ func TestClearTimeoutAfterFired(t *testing.T) {
 		t.Fatal("timed out waiting for timer")
 	}
 }
+
+func TestZeroInterval(t *testing.T) {
+	h := NewTimersWorker()
+	defer h.Stop()
+
+	t1 := h.SetInterval(0)
+
+	expected := []TimerId{t1, t1}
+	got := make([]TimerId, 0, 2)
+
+	deadline := time.After(time.Second)
+
+	// expect to fire at least twice
+	for range 2 {
+		select {
+		case id := <-h.C:
+			got = append(got, id)
+		case <-deadline:
+			t.Fatalf("timed out: expected %v, got %v", expected, got)
+		}
+	}
+}

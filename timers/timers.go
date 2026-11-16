@@ -8,18 +8,18 @@ import (
 type TimerId uint32
 
 type timer struct {
-	id   TimerId
-	when time.Time
-	// period is set to zero for non-repeating timers
+	id     TimerId
+	when   time.Time
 	period time.Duration
+	repeat bool
 }
 
+// next time when this timer should fire
 func (t timer) next() time.Time {
-	if t.period == 0 {
+	if !t.repeat {
 		return t.when
 	}
 
-	// if this is an interval, compute time for the next tick
 	passedTicks := time.Since(t.when) / t.period
 	return t.when.Add(t.period * (passedTicks + 1))
 }
@@ -77,7 +77,7 @@ func processTimers(ch chan TimerId, push chan timer, del chan TimerId, stop chan
 			pending = pending[1:]
 		case <-fire:
 			pending = append(pending, next.id)
-			if next.period == 0 {
+			if !next.repeat {
 				timers = slices.DeleteFunc(timers, func(t timer) bool { return t.id == next.id })
 			}
 		case <-stop:
@@ -112,7 +112,7 @@ func NewTimersWorker() *TimersWorkerHandle {
 		del:     del,
 		stop:    stop,
 		stopped: false,
-		next:    0,
+		next:    1,
 	}
 }
 
@@ -127,9 +127,8 @@ func (h *TimersWorkerHandle) Stop() {
 
 func (h *TimersWorkerHandle) SetTimeout(timeout time.Duration) TimerId {
 	h.push <- timer{
-		id:     h.next,
-		when:   time.Now().Add(timeout),
-		period: time.Duration(0),
+		id:   h.next,
+		when: time.Now().Add(timeout),
 	}
 
 	h.next += 1
@@ -142,9 +141,11 @@ func (h *TimersWorkerHandle) ClearTimeout(id TimerId) {
 
 func (h *TimersWorkerHandle) SetInterval(interval time.Duration) TimerId {
 	h.push <- timer{
-		id:     h.next,
-		when:   time.Now(),
-		period: interval,
+		id:   h.next,
+		when: time.Now(),
+		// round the interval to at least 4ms
+		period: max(interval, 4*time.Millisecond),
+		repeat: true,
 	}
 
 	h.next += 1
