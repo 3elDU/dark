@@ -11,11 +11,13 @@ type Tab struct {
 }
 
 func NewBrowsingContext(uaKey string) *Tab {
-	return &Tab{
-		ActiveDocument: NewBlankDocument(),
-		History:        NewEmptyHistory(),
-		uaKey:          uaKey,
+	t := &Tab{
+		History: NewEmptyHistory(),
+		uaKey:   uaKey,
 	}
+
+	t.ActiveDocument = NewBlankDocument(t)
+	return t
 }
 
 func (t *Tab) NavigateTo(url string) {
@@ -35,7 +37,7 @@ func (t *Tab) NavigateTo(url string) {
 	}
 
 	t.ActiveDocument.Close()
-	t.ActiveDocument = NewHtmlDocument(url, page)
+	t.ActiveDocument = NewHtmlDocument(t, url, page)
 }
 
 func (t *Tab) Close() {

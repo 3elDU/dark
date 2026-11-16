@@ -7,36 +7,24 @@ import (
 	"github.com/3elDU/dark/dom"
 	"github.com/3elDU/dark/dom/parser"
 	"github.com/3elDU/dark/http"
-	"github.com/3elDU/dark/queue"
-	"github.com/3elDU/dark/timers"
+	"github.com/3elDU/dark/webapi"
 	"github.com/grafana/sobek"
 )
 
 type Document struct {
-	Url *url.URL
-	Dom *dom.Dom
-
-	Js     *sobek.Runtime
-	Queue  *queue.TaskQueue
-	Timers *timers.TimersWorkerHandle
+	Realm *webapi.Realm
 }
 
-func NewBlankDocument() *Document {
+func NewBlankDocument(tab *Tab) *Document {
 	blankUrl, _ := url.Parse("about:blank")
 
-	js := createJsRealm()
-
 	return &Document{
-		Url:    blankUrl,
-		Dom:    dom.NewDom(),
-		Js:     js,
-		Queue:  queue.NewQueue(),
-		Timers: timers.NewTimersWorker(),
+		Realm: webapi.NewRealm(tab, blankUrl, dom.NewDom()),
 	}
 }
 
-func NewHtmlDocument(docUrl string, html string) *Document {
-	doc := NewBlankDocument()
+func NewHtmlDocument(tab *Tab, docUrl string, html string) *Document {
+	doc := NewBlankDocument(tab)
 
 	dom, err := parser.ParseDocument(html)
 	if err != nil {
@@ -48,8 +36,8 @@ func NewHtmlDocument(docUrl string, html string) *Document {
 		panic(err)
 	}
 
-	doc.Url = urlParsed
-	doc.Dom = dom
+	doc.Realm.Url = urlParsed
+	doc.Realm.Dom = dom
 
 	doc.loadScripts()
 
@@ -57,11 +45,11 @@ func NewHtmlDocument(docUrl string, html string) *Document {
 }
 
 func (d *Document) Close() {
-	d.Timers.Stop()
+	d.Realm.Close()
 }
 
 func (d *Document) loadScripts() {
-	scripts := d.Dom.QueryAllByTagName("script")
+	scripts := d.Realm.Dom.QueryAllByTagName("script")
 	fmt.Printf("found %v scripts on the webpage\n", len(scripts))
 
 	for _, script := range scripts {
@@ -75,8 +63,10 @@ func (d *Document) loadScripts() {
 
 		fmt.Printf("[%v] running script\n", normUrl)
 
-		if _, err = d.Js.RunProgram(prog); err != nil {
+		if res, err := d.Realm.VM.RunProgram(prog); err != nil {
 			fmt.Printf("error when running script: %v\n", err)
+		} else {
+			fmt.Printf("script returned: %v\n", res.String())
 		}
 	}
 }
@@ -85,7 +75,7 @@ func (d *Document) fetchScriptSourceCode(script *dom.Node) (source, normalizedUr
 	srcUrl, hasSrc := script.Data.Attributes()["src"]
 
 	if !hasSrc {
-		return d.Dom.GetTextContent(script), "inline script"
+		return d.Realm.Dom.GetTextContent(script), "inline script"
 	}
 
 	var scriptUrl *url.URL
@@ -93,7 +83,7 @@ func (d *Document) fetchScriptSourceCode(script *dom.Node) (source, normalizedUr
 	if isAbsoluteUrl(srcUrl) {
 		scriptUrl, _ = url.Parse(srcUrl)
 	} else {
-		scriptUrl = d.Url.Clone()
+		scriptUrl = d.Realm.Url.Clone()
 		scriptUrl.Path = srcUrl
 	}
 
