@@ -45,6 +45,8 @@ func NewRealm(host Host, url *url.URL, dom *dom.Dom) *Realm {
 	installTimers(r)
 	installConsole(r)
 	installMicrotask(r)
+	installNavigator(r)
+	installDocument(r)
 
 	return r
 }

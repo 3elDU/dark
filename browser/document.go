@@ -87,7 +87,7 @@ func (d *Document) fetchScriptSourceCode(script *dom.Node) (source, normalizedUr
 		scriptUrl.Path = srcUrl
 	}
 
-	source, err := http.FetchWebResource(scriptUrl.String(), "firefox")
+	source, err := http.FetchWebResource(scriptUrl.String())
 	if err != nil {
 		panic(err)
 	}

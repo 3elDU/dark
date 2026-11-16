@@ -5,23 +5,14 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/3elDU/dark/useragent"
 	"golang.org/x/net/html/charset"
 )
 
-var userAgents = map[string]string{
-	"firefox": "Mozilla/5.0 (X11; Linux x86_64; rv:160.0) Gecko/20100101 Firefox/160.0",
-	"chrome":  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
-	"dark":    "Dark",
-}
-
 // Used for all requests originating from the browser.
-func FetchWebResource(url string, uaKey string) (data string, err error) {
-	if _, ok := userAgents[uaKey]; !ok {
-		return "", fmt.Errorf("invalid user agent key: %v", uaKey)
-	}
-
+func FetchWebResource(url string) (data string, err error) {
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("User-Agent", userAgents[uaKey])
+	req.Header.Set("User-Agent", useragent.GetUserAgent())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

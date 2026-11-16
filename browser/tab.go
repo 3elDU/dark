@@ -6,14 +6,11 @@ import "github.com/3elDU/dark/http"
 type Tab struct {
 	ActiveDocument *Document
 	History        *History
-
-	uaKey string
 }
 
-func NewBrowsingContext(uaKey string) *Tab {
+func NewBrowsingContext() *Tab {
 	t := &Tab{
 		History: NewEmptyHistory(),
-		uaKey:   uaKey,
 	}
 
 	t.ActiveDocument = NewBlankDocument(t)
@@ -31,7 +28,7 @@ func (t *Tab) NavigateTo(url string) {
 		t.History.Push(entry)
 	}
 
-	page, err := http.FetchWebResource(url, t.uaKey)
+	page, err := http.FetchWebResource(url)
 	if err != nil {
 		panic(err)
 	}
