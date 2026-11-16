@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      // expected: A E1 E2 F N1 (boom) after-boom N2 T1 M1 T2 M2
+      console.log("A");
+
+      for (const [label, args] of [["E1", []], ["E2", [42]]]) {
+        try {
+          queueMicrotask(...args);
+          console.log(label, "FAIL: did not throw");
+        } catch (e) {
+          console.log(label, e instanceof TypeError, e.message);
+        }
+      }
+
+      setTimeout(() => {
+        console.log("T1");
+        queueMicrotask(() => console.log("M1"));
+      }, 0);
+      setTimeout(() => {
+        console.log("T2");
+        queueMicrotask(() => console.log("M2"));
+      }, 0);
+
+      queueMicrotask(() => {
+        console.log("N1");
+        queueMicrotask(() => console.log("N2"));
+      });
+      queueMicrotask(() => {
+        throw new Error("boom");
+      });
+      queueMicrotask(() => console.log("after-boom"));
+
+      console.log("F");
+    </script>
+  </body>
+</html>
