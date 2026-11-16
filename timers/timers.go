@@ -43,8 +43,11 @@ func closest(timers []timer) (timer, time.Time) {
 // push channel used to add new timers, del channel used to delete timers by id
 func processTimers(ch chan TimerId, push chan timer, del chan TimerId, stop chan any) {
 	timers := []timer{}
+	// keep a queue of timers that fired to avoid a deadlock while sending
+	pending := []TimerId{}
 
 	for {
+		// sends when the next closest timer fires
 		var fire <-chan time.Time
 		var next timer
 		if len(timers) > 0 {
@@ -53,18 +56,27 @@ func processTimers(ch chan TimerId, push chan timer, del chan TimerId, stop chan
 			fire = time.After(time.Until(at))
 		}
 
+		// when no timers are pending, out will be a nil channel,
+		// select on simulatenously with all other channels
+		var out chan TimerId
+		var head TimerId
+		if len(pending) > 0 {
+			out = ch
+			head = pending[0]
+		}
+
 		select {
 		case t := <-push:
 			timers = append(timers, t)
 		case id := <-del:
 			timers = slices.DeleteFunc(timers, func(t timer) bool { return t.id == id })
-		case <-fire:
-			select {
-			case ch <- next.id:
-			case <-stop:
-				return
-			}
 
+			// also clear the timer from pending queue
+			pending = slices.DeleteFunc(pending, func(p TimerId) bool { return p == id })
+		case out <- head:
+			pending = pending[1:]
+		case <-fire:
+			pending = append(pending, next.id)
 			if next.period == 0 {
 				timers = slices.DeleteFunc(timers, func(t timer) bool { return t.id == next.id })
 			}
