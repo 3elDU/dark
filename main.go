@@ -43,4 +43,5 @@ func main() {
 	tab.NavigateTo(url)
 
 	tab.ActiveDocument.Dom.Print()
+	tab.Close()
 }

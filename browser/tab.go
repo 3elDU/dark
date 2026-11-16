@@ -2,7 +2,7 @@ package browser
 
 import "github.com/3elDU/dark/http"
 
-// A browsing context (a.k.a navigable) represents a top-level browsing context.
+// A Tab represents a top-level browsing context (a.k.a navigable)
 type Tab struct {
 	ActiveDocument *Document
 	History        *History
@@ -34,5 +34,10 @@ func (t *Tab) NavigateTo(url string) {
 		panic(err)
 	}
 
+	t.ActiveDocument.Close()
 	t.ActiveDocument = NewHtmlDocument(url, page)
+}
+
+func (t *Tab) Close() {
+	t.ActiveDocument.Close()
 }

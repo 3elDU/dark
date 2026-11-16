@@ -7,26 +7,37 @@ import (
 	"github.com/3elDU/dark/dom"
 	"github.com/3elDU/dark/dom/parser"
 	"github.com/3elDU/dark/http"
+	"github.com/3elDU/dark/queue"
+	"github.com/3elDU/dark/timers"
 	"github.com/grafana/sobek"
 )
 
 type Document struct {
 	Url *url.URL
 	Dom *dom.Dom
-	Js  *sobek.Runtime
+
+	Js     *sobek.Runtime
+	Queue  *queue.TaskQueue
+	Timers *timers.TimersWorkerHandle
 }
 
 func NewBlankDocument() *Document {
 	blankUrl, _ := url.Parse("about:blank")
 
+	js := createJsRealm()
+
 	return &Document{
-		Url: blankUrl,
-		Dom: dom.NewDom(),
-		Js:  createJsRealm(),
+		Url:    blankUrl,
+		Dom:    dom.NewDom(),
+		Js:     js,
+		Queue:  queue.NewQueue(),
+		Timers: timers.NewTimersWorker(),
 	}
 }
 
 func NewHtmlDocument(docUrl string, html string) *Document {
+	doc := NewBlankDocument()
+
 	dom, err := parser.ParseDocument(html)
 	if err != nil {
 		panic(err)
@@ -37,15 +48,16 @@ func NewHtmlDocument(docUrl string, html string) *Document {
 		panic(err)
 	}
 
-	doc := &Document{
-		Url: urlParsed,
-		Dom: dom,
-		Js:  createJsRealm(),
-	}
+	doc.Url = urlParsed
+	doc.Dom = dom
 
 	doc.loadScripts()
 
 	return doc
+}
+
+func (d *Document) Close() {
+	d.Timers.Stop()
 }
 
 func (d *Document) loadScripts() {
