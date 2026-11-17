@@ -49,8 +49,19 @@ func (d *Document) Close() {
 }
 
 func (d *Document) loadScripts() {
-	scripts := d.Realm.Dom.QueryAllByTagName("script")
-	fmt.Printf("found %v scripts on the webpage\n", len(scripts))
+	scriptElements := d.Realm.Dom.QueryAllByTagName("script")
+	// scripts to actually load
+	scripts := []*dom.Node{}
+	for _, script := range scriptElements {
+		switch classifyScript(script) {
+		case classicScript:
+			scripts = append(scripts, script)
+		default:
+			fmt.Printf("ignoring script with type %v\n", script.Data.Attributes().Get("type"))
+		}
+	}
+
+	fmt.Printf("found %v scripts on the webpage, loading %v of them\n", len(scriptElements), len(scripts))
 
 	for _, script := range scripts {
 		src, normUrl := d.fetchScriptSourceCode(script)

@@ -173,3 +173,17 @@ type NodeData interface {
 }
 
 type AttributeList map[string]string
+
+// Get the attribute value. Returns an empty string if an attribute doesn't exist.
+func (al AttributeList) Get(name string) string {
+	if val, ok := al[name]; ok {
+		return val
+	}
+	return ""
+}
+
+// Whether the element has an attribute with the given name (a defined empty attribute returns true)
+func (al AttributeList) Has(name string) bool {
+	_, has := al[name]
+	return has
+}
