@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- should not crash -->
+    <script type="application/json">
+      { "demo": "json", "values": [1, 2, 3] }
+    </script>
+
+    <script src="classic.js"></script>
+
+    <script type="module">
+      console.log(`(from inline script) import.meta.url=${import.meta.url}`);
+    </script>
+
+    <script type="module" src="./module.js"></script>
+    <script type="module" src="./nested/module.js"></script>
+
+    <script type="module" src="once.js"></script>
+    <script type="module" src="once.js"></script>
+
+    <script type="module">
+      const { flag } = await import("./dyn.js");
+      console.log(`This value was imported dynamically: ${flag}`);
+    </script>
+  </body>
+</html>

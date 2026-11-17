@@ -18,6 +18,16 @@ type Host interface {
 	NavigateTo(page string)
 }
 
+// Gives access to the higher-level document structure
+type Document interface {
+	// Needed for dynamic imports by sobek
+	ResolveImportedModule(interface{}, string) (sobek.ModuleRecord, error)
+	// Needed for import.meta.url
+	GetModuleReferrerUrl(any) *url.URL
+	// import.meta.resolve()
+	ResolveModuleSpecifier(any, string) (*url.URL, error)
+}
+
 type Realm struct {
 	Url   *url.URL
 	Dom   *dom.Dom
@@ -28,9 +38,10 @@ type Realm struct {
 	timerCallbacks map[timers.TimerId]sobek.Callable
 
 	Host Host
+	Doc  Document
 }
 
-func NewRealm(host Host, url *url.URL, dom *dom.Dom) *Realm {
+func NewRealm(host Host, doc Document, url *url.URL, dom *dom.Dom) *Realm {
 	r := &Realm{
 		Url:            url,
 		Dom:            dom,
@@ -39,8 +50,14 @@ func NewRealm(host Host, url *url.URL, dom *dom.Dom) *Realm {
 		Timers:         timers.NewTimersWorker(),
 		timerCallbacks: map[timers.TimerId]sobek.Callable{},
 		Host:           host,
+		Doc:            doc,
 	}
 
+	r.VM.SetPromiseRejectionTracker(func(p *sobek.Promise, operation sobek.PromiseRejectionOperation) {
+		fmt.Printf("unhandled promise rejection: %v\n", p.Result().String())
+	})
+
+	installImport(r)
 	installWindow(r)
 	installTimers(r)
 	installConsole(r)

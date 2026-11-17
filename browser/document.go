@@ -6,7 +6,6 @@ import (
 
 	"github.com/3elDU/dark/dom"
 	"github.com/3elDU/dark/dom/parser"
-	"github.com/3elDU/dark/http"
 	"github.com/3elDU/dark/webapi"
 	"github.com/grafana/sobek"
 )
@@ -15,15 +14,25 @@ type Document struct {
 	Realm *webapi.Realm
 
 	scripts []scriptRecord
+	// cache normalized urls to modules
+	modules map[string]sobek.ModuleRecord
+	// cache linked modules to urls.
+	// used to preserve the base url when a script imports another script.
+	reverseModules map[any]*url.URL
 }
 
 func NewBlankDocument(tab *Tab) *Document {
 	blankUrl, _ := url.Parse("about:blank")
 
-	return &Document{
-		Realm:   webapi.NewRealm(tab, blankUrl, dom.NewDom()),
-		scripts: []scriptRecord{},
+	doc := &Document{
+		scripts:        []scriptRecord{},
+		modules:        map[string]sobek.ModuleRecord{},
+		reverseModules: map[any]*url.URL{},
 	}
+
+	doc.Realm = webapi.NewRealm(tab, doc, blankUrl, dom.NewDom())
+
+	return doc
 }
 
 func NewHtmlDocument(tab *Tab, docUrl string, html string) *Document {
@@ -42,6 +51,7 @@ func NewHtmlDocument(tab *Tab, docUrl string, html string) *Document {
 	doc.Realm.Url = urlParsed
 	doc.Realm.Dom = dom
 
+	doc.findScripts()
 	doc.loadScripts()
 
 	return doc
@@ -51,14 +61,14 @@ func (d *Document) Close() {
 	d.Realm.Close()
 }
 
-func (d *Document) loadScripts() {
+func (d *Document) findScripts() {
 	scriptElements := d.Realm.Dom.QueryAllByTagName("script")
 
 	for _, scriptNode := range scriptElements {
 		scriptType := classifyScript(scriptNode)
 
 		switch scriptType {
-		case classicScript:
+		case classicScript, moduleScript:
 			d.scripts = append(d.scripts, scriptRecord{
 				node: scriptNode,
 				t:    scriptType,
@@ -76,76 +86,54 @@ func (d *Document) loadScripts() {
 	fmt.Printf("found %v <script> elements on the webpage, loading %v of them\n",
 		len(scriptElements), len(d.scripts),
 	)
+}
 
-	for _, script := range d.scripts {
-		src, normUrl := d.fetchScriptSourceCode(script.node)
+func (d *Document) loadScripts() {
+	for i := range d.scripts {
+		script := &d.scripts[i]
+		src, normUrl, err := d.fetchScriptSourceCode(*script)
 
-		// classic script sare always compiled in non-strict mode
-		prog, err := sobek.Compile(normUrl, src, false)
+		normUrlDebug := fmt.Sprintf("inline-script-%v", i)
+		if normUrl != nil {
+			normUrlDebug = normUrl.String()
+		}
+
+		script.name = normUrlDebug
+
 		if err != nil {
-			fmt.Printf("[%v] skipping script because of compile error: %v\n", normUrl, err)
+			fmt.Printf("[%v] error while fetching script: %v", normUrlDebug, err)
 			continue
 		}
 
-		fmt.Printf("[%v] running script\n", normUrl)
+		script.url = normUrl
 
-		if res, err := d.Realm.VM.RunProgram(prog); err != nil {
-			fmt.Printf("error when running script: %v\n", err)
-		} else {
-			fmt.Printf("script returned: %v\n", res.String())
+		switch script.t {
+		case classicScript:
+			// classic scripts are always compiled in non-strict mode
+			prog, err := sobek.Compile(script.name, src, false)
+			if err != nil {
+				fmt.Printf("[%v] skipping classis script because of compile error: %v\n", script.name, err)
+				continue
+			}
+
+			fmt.Printf("[%v] running script\n", script.name)
+
+			if res, err := d.Realm.VM.RunProgram(prog); err != nil {
+				fmt.Printf("error when running script: %v\n", err)
+			} else {
+				fmt.Printf("[%v] script returned: %v\n", script.name, res.String())
+				script.ran = true
+			}
+		case moduleScript:
+			p, err := d.runModuleScriptSource(*script, src)
+			if err != nil {
+				fmt.Printf("[%v] error when running module script: %v\n", script.name, err)
+				continue
+			} else {
+				fmt.Printf("[%v] completed module script, promise result = %v\n", script.name, p.Result().String())
+				script.ran = true
+			}
 		}
+
 	}
-}
-
-func (d *Document) fetchScriptSourceCode(script *dom.Node) (source, normalizedUrl string) {
-	srcUrl, hasSrc := script.Data.Attributes()["src"]
-
-	if !hasSrc {
-		return d.Realm.Dom.GetTextContent(script), "inline script"
-	}
-
-	var scriptUrl *url.URL
-
-	if isAbsoluteUrl(srcUrl) {
-		scriptUrl, _ = url.Parse(srcUrl)
-	} else {
-		scriptUrl = d.Realm.Url.ResolveReference(scriptUrl)
-	}
-
-	source, err := http.FetchWebResource(scriptUrl.String())
-	if err != nil {
-		panic(err)
-	}
-
-	return source, scriptUrl.String()
-}
-
-func isAbsoluteUrl(text string) bool {
-	url, err := url.Parse(text)
-	if err != nil {
-		return false
-	}
-
-	return url.IsAbs()
-}
-
-func createJsRealm() *sobek.Runtime {
-	vm := sobek.New()
-
-	obj := vm.NewObject()
-
-	obj.Set("querySelector", func(call sobek.FunctionCall) sobek.Value {
-		fmt.Printf("querySelector(%v)\n", call.Arguments[0].String())
-		return sobek.Undefined()
-	})
-	obj.Set("querySelectorAll", func(call sobek.FunctionCall) sobek.Value {
-		fmt.Printf("querySelectorAll(%v)\n", call.Arguments[0].String())
-		return sobek.Undefined()
-	})
-
-	vm.Set("window", obj)
-	vm.Set("document", obj)
-	vm.Set("self", obj)
-
-	return vm
 }

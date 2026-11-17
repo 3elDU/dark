@@ -1,6 +1,8 @@
 package browser
 
-import "github.com/3elDU/dark/http"
+import (
+	"github.com/3elDU/dark/http"
+)
 
 // A Tab represents a top-level browsing context (a.k.a navigable)
 type Tab struct {
