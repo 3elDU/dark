@@ -13,13 +13,16 @@ import (
 
 type Document struct {
 	Realm *webapi.Realm
+
+	scripts []scriptRecord
 }
 
 func NewBlankDocument(tab *Tab) *Document {
 	blankUrl, _ := url.Parse("about:blank")
 
 	return &Document{
-		Realm: webapi.NewRealm(tab, blankUrl, dom.NewDom()),
+		Realm:   webapi.NewRealm(tab, blankUrl, dom.NewDom()),
+		scripts: []scriptRecord{},
 	}
 }
 
@@ -50,23 +53,35 @@ func (d *Document) Close() {
 
 func (d *Document) loadScripts() {
 	scriptElements := d.Realm.Dom.QueryAllByTagName("script")
-	// scripts to actually load
-	scripts := []*dom.Node{}
-	for _, script := range scriptElements {
-		switch classifyScript(script) {
+
+	for _, scriptNode := range scriptElements {
+		scriptType := classifyScript(scriptNode)
+
+		switch scriptType {
 		case classicScript:
-			scripts = append(scripts, script)
+			d.scripts = append(d.scripts, scriptRecord{
+				node: scriptNode,
+				t:    scriptType,
+				// FIXME: all scripts are deferred right now, because we have no
+				// way of running the scripts as the dom gets built. Adding non-deferred
+				// scripts requires us to switch to a different HTML parser or
+				// fork x/net/html
+				deferred: true,
+			})
 		default:
-			fmt.Printf("ignoring script with type %v\n", script.Data.Attributes().Get("type"))
+			fmt.Printf("ignoring script with type %v\n", scriptNode.Data.Attributes().Get("type"))
 		}
 	}
 
-	fmt.Printf("found %v scripts on the webpage, loading %v of them\n", len(scriptElements), len(scripts))
+	fmt.Printf("found %v <script> elements on the webpage, loading %v of them\n",
+		len(scriptElements), len(d.scripts),
+	)
 
-	for _, script := range scripts {
-		src, normUrl := d.fetchScriptSourceCode(script)
+	for _, script := range d.scripts {
+		src, normUrl := d.fetchScriptSourceCode(script.node)
 
-		prog, err := sobek.Compile(normUrl, src, true)
+		// classic script sare always compiled in non-strict mode
+		prog, err := sobek.Compile(normUrl, src, false)
 		if err != nil {
 			fmt.Printf("[%v] skipping script because of compile error: %v\n", normUrl, err)
 			continue
@@ -94,8 +109,7 @@ func (d *Document) fetchScriptSourceCode(script *dom.Node) (source, normalizedUr
 	if isAbsoluteUrl(srcUrl) {
 		scriptUrl, _ = url.Parse(srcUrl)
 	} else {
-		scriptUrl = d.Realm.Url.Clone()
-		scriptUrl.Path = srcUrl
+		scriptUrl = d.Realm.Url.ResolveReference(scriptUrl)
 	}
 
 	source, err := http.FetchWebResource(scriptUrl.String())

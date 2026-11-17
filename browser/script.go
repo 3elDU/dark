@@ -19,6 +19,13 @@ const (
 	ignoreScript
 )
 
+type scriptRecord struct {
+	node     *dom.Node
+	t        scriptType
+	deferred bool
+	ran      bool
+}
+
 func classifyScript(scriptNode *dom.Node) scriptType {
 	scriptType := strings.ToLower(
 		strings.TrimSpace(
