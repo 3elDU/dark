@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      console.log('"foo" should be printed exactly 5 times');
+      console.log(
+        '"bar" should be printed exactly twice, in the beginning and in the end',
+      );
+
+      let i = 0;
+      const fooInterval = setInterval(() => {
+        console.log("foo");
+        if (++i == 5) clearInterval(fooInterval);
+      }, 100);
+
+      setTimeout(() => console.log("bar"));
+      setTimeout(() => console.log("bar"), 1000);
+
+      // this one should never print as it is cancelled right away
+      const barTimeout = setTimeout(() => console.log("BUZZ"), 1200);
+      clearTimeout(barTimeout);
+    </script>
+  </body>
+</html>

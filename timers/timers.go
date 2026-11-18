@@ -135,7 +135,8 @@ func (h *TimersWorkerHandle) SetTimeout(timeout time.Duration) TimerId {
 	return h.next - 1
 }
 
-func (h *TimersWorkerHandle) ClearTimeout(id TimerId) {
+// used for both timeouts and intervals
+func (h *TimersWorkerHandle) Clear(id TimerId) {
 	h.del <- id
 }
 
@@ -150,8 +151,4 @@ func (h *TimersWorkerHandle) SetInterval(interval time.Duration) TimerId {
 
 	h.next += 1
 	return h.next - 1
-}
-
-func (h *TimersWorkerHandle) ClearInterval(id TimerId) {
-	h.del <- id
 }

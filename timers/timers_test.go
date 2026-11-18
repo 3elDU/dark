@@ -81,7 +81,7 @@ func TestClearTimeoutAfterFired(t *testing.T) {
 
 	t1 := h.SetTimeout(0)
 	time.Sleep(50 * time.Millisecond)
-	h.ClearTimeout(t1)
+	h.Clear(t1)
 
 	t2 := h.SetTimeout(10 * time.Millisecond)
 

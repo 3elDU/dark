@@ -41,16 +41,20 @@ directly into the terminal.
 Because the web was never really intended for character devices, there are gonna
 be many compromises I am willing to accept, rather than try to engineer around them.
 
-Pixel size is terminal resolution multiplied by constant font size.
-For a 80x30 terminal, W = 80\*8 = 640, H = 480.
+Pixel size is terminal resolution multiplied by cell size, determined via an
+escape code, with a fallback to 8 as a default.
 A box with `width: 8px` and `height: 16px` occupies exactly one cell on the screen.
 Non-divisible sizes are rounded.
 
 Text layout becomes simpler and faster, as the maximum width for the given text
 is simply `len(text) * FontWidth`.
 
-For background-only cells we can use the half-block element (U+2584: ▄) to
-double our vertical color resolution.
+For background background-only cells we can use the half-block element (U+2584: ▄) to
+double our vertical color resolution. With text on foreground, this becomes a single
+vertical pixel per cell
+This is the baseline for images.
+On terminals that support kitty image protocol we would use that, as it allows
+to show text over the image.
 
 # Non-goals
 
@@ -63,6 +67,39 @@ Don't want to spend too much energy on those.
   to implement advanced security mechanisms, like process isolation.
 - Implementing every Web API. Some just don't make sense in our context,
   some are too old, some are too obscured and not used by anyone.
+
+# The current state of things
+
+A few sentences on the current progress with dark, so you don't have
+to read half of the code to get a sense. You are welcome to change the lines below.
+This is not a changelog, just a brief for yourself and future sessions.
+
+Early stage: dark is a headless JS host for now. Nothing is rendered to the terminal yet.
+
+`go run . <url>` fetches the page, parses it into our own DOM, prints the tree,
+runs the page's scripts and then sits in the event loop forever.
+
+What exists:
+
+- **Navigation**: `Tab` holds a history stack and the active `Document`. One tab, no UI.
+- **DOM**: `x/net/html` output is converted into our own tree (flat slice of nodes,
+  addressed by `NodeHandle`). Not exposed to JS yet: `document` is an empty object.
+- **Scripts**: classic and module scripts, inline and external. All of them run as
+  deferred, after parsing finishes, because `x/net/html` builds the whole tree at once.
+  `nomodule` scripts are skipped.
+- **Modules**: static imports, dynamic `import()` (fetches synchronously),
+  `import.meta.url` and `import.meta.resolve()`. Bare specifiers fail, import maps
+  are recognised but not applied.
+- **Web APIs**: `console.log`, timers, `queueMicrotask`, `window`/`self`,
+  `navigator` (static values, user agent switchable with `-u`).
+- **Event loop**: `Realm.MainLoop`. Timers run in a separate goroutine and send fired
+  ids back over a channel, callbacks go through a task queue.
+
+Not started: CSS, layout, rendering, input, DOM bindings, events, `fetch`/XHR, storage.
+`terminal/` is an empty stub for cell size detection.
+
+Tests: only `timers/` has Go tests. `tests/` holds HTML pages for manual testing
+over an HTTP server.
 
 # How we work on this
 
