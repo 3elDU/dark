@@ -1,6 +1,7 @@
 package nodes
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/3elDU/dark/dom"
@@ -19,6 +20,9 @@ func NewTextData(text string) TextData {
 }
 
 func (t TextData) String() string {
+	if len(t.text) > 1024 {
+		return fmt.Sprintf("omitted, text was too long (%v characters)", len(t.text))
+	}
 	return strings.TrimSpace(t.text)
 }
 func (TextData) Type() dom.NodeType {
