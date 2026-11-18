@@ -68,3 +68,7 @@ Don't want to spend too much energy on those.
 
 I like writing code. I will use your help with standards, architecture design
 and debugging. You can propose changes but don't add any code without asking.
+
+## Debugging
+
+Dark can't run local files, so set you'll need an HTTP server to load a file.
