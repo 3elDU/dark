@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "message": "./modules/message.js",
+          "lib/": "./libraries/"
+        },
+        "scopes": {
+          "./extras/": {
+            "message": "./modules/message2.js"
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      import { message } from "message";
+      import { sayHello } from "lib/hello.js";
+
+      console.log("imported message", message);
+    </script>
+    <script type="module" src="./extras/index.js"></script>
+  </body>
+</html>

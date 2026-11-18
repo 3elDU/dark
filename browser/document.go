@@ -2,10 +2,12 @@ package browser
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 
 	"github.com/3elDU/dark/dom"
 	"github.com/3elDU/dark/dom/parser"
+	"github.com/3elDU/dark/importmap"
 	"github.com/3elDU/dark/webapi"
 	"github.com/grafana/sobek"
 )
@@ -13,7 +15,8 @@ import (
 type Document struct {
 	Realm *webapi.Realm
 
-	scripts []scriptRecord
+	scripts    []scriptRecord
+	importMaps []*importmap.ImportMap
 	// cache normalized urls to modules
 	modules map[string]sobek.ModuleRecord
 	// cache linked modules to urls.
@@ -26,6 +29,7 @@ func NewBlankDocument(tab *Tab) *Document {
 
 	doc := &Document{
 		scripts:        []scriptRecord{},
+		importMaps:     []*importmap.ImportMap{},
 		modules:        map[string]sobek.ModuleRecord{},
 		reverseModules: map[any]*url.URL{},
 	}
@@ -78,6 +82,17 @@ func (d *Document) findScripts() {
 				// fork x/net/html
 				deferred: true,
 			})
+		case importMapScript:
+			src := d.Realm.Dom.GetTextContent(scriptNode)
+			imap, err := importmap.Parse(src, d.Realm.Url)
+			if err != nil {
+				log.Printf("error while parsing importmap, ignoring it: %v\n", err)
+				continue
+			} else {
+				d.importMaps = append(d.importMaps, imap)
+				log.Printf("parsed import map with %v import entries and %v scopes\n",
+					len(imap.Imports), len(imap.Scopes))
+			}
 		default:
 			fmt.Printf("ignoring script with type %v\n", scriptNode.Data.Attributes().Get("type"))
 		}

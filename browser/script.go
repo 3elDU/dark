@@ -110,21 +110,56 @@ func (d *Document) GetModuleReferrerUrl(referrer any) *url.URL {
 	return d.Realm.Url
 }
 
-func (d *Document) ResolveModuleSpecifier(referrer any, specifier string) (*url.URL, error) {
+// returns nil if the import map doesn't match the specifier
+func (d *Document) checkImportMap(specifier string) *url.URL {
+	for _, imap := range d.importMaps {
+		for k, v := range imap.Imports {
+			if k == specifier {
+				return v
+			} else if strings.HasSuffix(k, "/") && strings.HasPrefix(specifier, k) {
+				u, err := url.Parse(
+					strings.TrimPrefix(specifier, k),
+				)
+				if err == nil {
+					return v.ResolveReference(u)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// Given a specifier like `./a.js` or simply `react`, resolves it to an absolute url.
+// Error is returned for invalid import map entries and bare specifiers.
+func (d *Document) ResolveModuleSpecifier(referrer any, specifier string) (u *url.URL, err error) {
+	// normalize the specifier first (resolve relative paths to get an absolute url)
 	if strings.HasPrefix(specifier, "/") || strings.HasPrefix(specifier, "./") || strings.HasPrefix(specifier, "../") {
-		return getNormalizedScriptUrl(d.GetModuleReferrerUrl(referrer), specifier)
+		u, err = getNormalizedScriptUrl(d.GetModuleReferrerUrl(referrer), specifier)
+		if err != nil {
+			return
+		}
 	}
 
-	url, err := url.Parse(specifier)
-	if err != nil {
-		return nil, err
+	// if specifier doesn't start as a path, parse it as a regular url
+	u, err = url.Parse(specifier)
+
+	// look up the import map
+	key := specifier
+	if err == nil {
+		key = u.String()
 	}
 
-	if !url.IsAbs() {
-		return nil, fmt.Errorf("unable to resolve bare specifier")
+	uMap := d.checkImportMap(key)
+	if uMap != nil {
+		return uMap, nil
 	}
 
-	return url, nil
+	if u == nil || !u.IsAbs() {
+		return nil, fmt.Errorf("unable to resolve bare specifier: %v", specifier)
+	}
+
+	return u, nil
 }
 
 func (d *Document) ResolveImportedModule(referencingScriptOrModule interface{}, specifier string) (sobek.ModuleRecord, error) {
