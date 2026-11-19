@@ -20,6 +20,6 @@ func (c CommentData) String() string {
 func (CommentData) Type() dom.NodeType {
 	return dom.CommentNode
 }
-func (c CommentData) Text() string {
-	return c.comment
+func (c CommentData) Value() *string {
+	return &c.comment
 }

@@ -11,7 +11,7 @@ func NewDocumentData() DocumentData {
 }
 
 func (d DocumentData) String() string {
-	return "<html>"
+	return "#document"
 }
 func (DocumentData) Type() dom.NodeType {
 	return dom.DocumentNode

@@ -28,6 +28,6 @@ func (t TextData) String() string {
 func (TextData) Type() dom.NodeType {
 	return dom.TextNode
 }
-func (t TextData) Text() string {
-	return t.text
+func (t TextData) Value() *string {
+	return &t.text
 }

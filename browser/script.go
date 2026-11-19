@@ -25,7 +25,7 @@ const (
 )
 
 type scriptRecord struct {
-	node *dom.Node
+	element dom.Element
 	// used for debugging
 	name string
 	// normalized, always absolute. nil for inline scripts
@@ -35,14 +35,14 @@ type scriptRecord struct {
 	ran      bool
 }
 
-func classifyScript(scriptNode *dom.Node) scriptType {
+func classifyScript(script dom.Element) scriptType {
 	scriptType := strings.ToLower(
 		strings.TrimSpace(
-			scriptNode.Data.Attributes().Get("type"),
+			script.Attributes().Get("type"),
 		),
 	)
 
-	nomodule := scriptNode.Data.Attributes().Has("nomodule")
+	nomodule := script.Attributes().Has("nomodule")
 	if nomodule {
 		// nomodule is for older browsers to load a fallback script.
 		// we support modules, so any script with 'nomodule' is ignored.
@@ -65,10 +65,10 @@ func classifyScript(scriptNode *dom.Node) scriptType {
 // with an external script (with an 'src' attribute) returns the empty string as
 // source, and the normalized script url
 func (d *Document) fetchScriptSourceCode(script scriptRecord) (source string, normalizedUrl *url.URL, err error) {
-	srcUrl, hasSrc := script.node.Data.Attributes()["src"]
+	srcUrl, hasSrc := script.element.Attributes()["src"]
 
 	if !hasSrc {
-		return d.Realm.Dom.GetTextContent(script.node), nil, nil
+		return script.element.GetTextContent(), nil, nil
 	}
 
 	scriptUrl, err := getNormalizedScriptUrl(d.Realm.Url, srcUrl)

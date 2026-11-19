@@ -7,10 +7,10 @@ import (
 
 // Walk the DOM and print it
 func (d *Dom) Print() {
-	walkAndPrint(d, 0, d.GetRootNode())
+	walkAndPrint(0, d.Root)
 }
 
-func walkAndPrint(dom *Dom, depth int, node *Node) {
+func walkAndPrint(depth int, node *Node) {
 	str := node.Data.String()
 
 	// skip empty tags
@@ -18,7 +18,7 @@ func walkAndPrint(dom *Dom, depth int, node *Node) {
 		fmt.Println(strings.Repeat(" ", depth*4) + str)
 	}
 
-	for child := range dom.ChildNodes(node) {
-		walkAndPrint(dom, depth+1, child)
+	for _, child := range node.children {
+		walkAndPrint(depth+1, child)
 	}
 }

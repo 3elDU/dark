@@ -50,8 +50,8 @@ func (e ElementData) String() string {
 func (ElementData) Type() dom.NodeType {
 	return dom.ElementNode
 }
-func (ElementData) Text() string {
-	return ""
+func (ElementData) Value() *string {
+	return nil
 }
 func (e ElementData) Attributes() dom.AttributeList {
 	return e.attrs

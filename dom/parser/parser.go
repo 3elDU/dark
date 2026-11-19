@@ -15,12 +15,13 @@ func ParseDocument(page string) (*dom.Dom, error) {
 	}
 
 	dom := dom.NewDom()
-	convertTree(dom, doc)
+	tree := convertTree(doc)
+	dom.ReplaceRoot(tree)
 
 	return dom, nil
 }
 
-func convertTree(tree *dom.Dom, node *html.Node) dom.NodeHandle {
+func convertTree(node *html.Node) *dom.Node {
 	var data dom.NodeData
 
 	switch node.Type {
@@ -38,14 +39,16 @@ func convertTree(tree *dom.Dom, node *html.Node) dom.NodeHandle {
 
 	parent := dom.NewNode(data)
 
-	tree.AddNode(parent)
-
 	for child := range node.ChildNodes() {
-		cChild := convertTree(tree, child)
-		tree.AppendChild(parent.Id(), cChild)
+		cChild := convertTree(child)
+
+		if err := parent.AppendChildren(cChild); err != nil {
+			// an error here means a bug in x/net/html
+			panic(err)
+		}
 	}
 
-	return parent.Id()
+	return parent
 }
 
 func convertAttrs(attrs []html.Attribute) dom.AttributeList {

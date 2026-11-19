@@ -66,16 +66,16 @@ func (d *Document) Close() {
 }
 
 func (d *Document) findScripts() {
-	scriptElements := d.Realm.Dom.QueryAllByTagName("script")
+	scriptElements := d.Realm.Dom.GetElementsByTagName("script")
 
-	for _, scriptNode := range scriptElements {
-		scriptType := classifyScript(scriptNode)
+	for _, script := range scriptElements {
+		scriptType := classifyScript(script)
 
 		switch scriptType {
 		case classicScript, moduleScript:
 			d.scripts = append(d.scripts, scriptRecord{
-				node: scriptNode,
-				t:    scriptType,
+				element: script,
+				t:       scriptType,
 				// FIXME: all scripts are deferred right now, because we have no
 				// way of running the scripts as the dom gets built. Adding non-deferred
 				// scripts requires us to switch to a different HTML parser or
@@ -83,7 +83,7 @@ func (d *Document) findScripts() {
 				deferred: true,
 			})
 		case importMapScript:
-			src := d.Realm.Dom.GetTextContent(scriptNode)
+			src := script.GetTextContent()
 			imap, err := importmap.Parse(src, d.Realm.Url)
 			if err != nil {
 				log.Printf("error while parsing importmap, ignoring it: %v\n", err)
@@ -94,7 +94,7 @@ func (d *Document) findScripts() {
 					len(imap.Imports), len(imap.Scopes))
 			}
 		default:
-			fmt.Printf("ignoring script with type %v\n", scriptNode.Data.Attributes().Get("type"))
+			fmt.Printf("ignoring script with type %v\n", script.Attributes().Get("type"))
 		}
 	}
 
